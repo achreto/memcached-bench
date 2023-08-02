@@ -10,7 +10,8 @@ BUILD_DIR_ABS=$(shell pwd)/$(BUILD_DIR)
 MEMCACHED_GIT=https://github.com/achreto/memcached.git
 
 # the commit to checkout
-MEMCACHED_COMMIT=9621b14
+# MEMCACHED_COMMIT=9621b14
+MEMCACHED_COMMIT=efee763c93249358ea5b3b42c7fd4e57e2599c30
 
 # keep in sync with the librettos options
 MEMCACHED_CONF_OPTS += \
@@ -33,34 +34,31 @@ LIBMEMCACHED_CONF_ENV += \
 # Building Targets
 ####################################################################################################
 
-build: $(BUILD_DIR)/bin/memcached
+build: $(BUILD_DIR)/bin/memcached $(BUILD_DIR)/bin/loadbalancer
 
 memcached/.stamp:
 	git clone $(MEMCACHED_GIT)
 	(cd memcached && git checkout $(MEMCACHED_COMMIT))
-	touch $@
-
-memcached/Makefile: memcached/.stamp
 	(cd memcached && ./autogen.sh)
 	(cd memcached && ./configure $(MEMCACHED_CONF_OPTS))
-
-$(BUILD_DIR)/bin/memcached: memcached/Makefile
-	$(MAKE) -C memcached
-	$(MAKE) -C memcached install
+	touch $@
 
 libmemcached/.stamp:
 	wget -O $(LIBMEMCACHED_FILE) $(LIBMEMCACHED_SOURCE)
 	tar -xvzf $(LIBMEMCACHED_FILE)
 	rm -rf $(LIBMEMCACHED_FILE)
 	mv libmemcached-$(LIBMEMCACHED_VERSION) libmemcached
-	touch $@
-
-libmemcached/Makefile: libmemcached/.stamp
 	(cd libmemcached && $(LIBMEMCACHED_CONF_ENV) ./configure --prefix=$(BUILD_DIR_ABS))
-
-$(BUILD_DIR)/lib/memcached.so: libmemcached/Makefile
 	$(MAKE) -C libmemcached
 	$(MAKE) -C libmemcached install
+	touch $@
+
+$(BUILD_DIR)/bin/memcached: memcached/.stamp
+	$(MAKE) -C memcached
+	$(MAKE) -C memcached install
+
+$(BUILD_DIR)/bin/loadbalancer: libmemcached/.stamp
+	$(MAKE) -C loadbalancer
 
 clean:
 	rm -rf memcached
