@@ -4,10 +4,12 @@
 #include <cstring>
 #include <getopt.h>
 #include <iostream>
+#include <iomanip>
 #include <libmemcached-1.0/memcached.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <unistd.h>
+#include <time.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Option Parsing
@@ -15,6 +17,11 @@
 
 #define SERVER_MAX 8
 #define DEFAULT_MEMCACHED_PORT 11211
+
+// we set 64-bit keys
+#define KEY_SIZE 8
+// we set 64 byte values
+#define VALUE_SIZE 64
 
 struct server_info {
     size_t num_servers;
@@ -39,9 +46,9 @@ static int opt_verbose = 0;
 // list of servers to be used
 static struct server_info opt_server_info = { 0 };
 // the number of queries to be performed
-static size_t opt_num_queries = 0;
-// the amount of memory to be used
-static size_t opt_max_mem = 0;
+static size_t opt_num_queries = 1000;
+// the amount of memory to be used in MB
+static size_t opt_max_mem = 16;
 // the number of threads for the benchmark
 static size_t opt_num_threads = 1;
 
@@ -80,11 +87,14 @@ static void options_parse_server(const char* _server_list)
             char* hostname = strtok_r(server + 6, ":", &port);
             opt_server_info.servers[num_servers].is_unix = false;
             opt_server_info.servers[num_servers].tcp.hostname = hostname;
-            if (port) {
+            printf("port: %s %p\n", port, port);
+            if (port && *port != 0) {
                 opt_server_info.servers[num_servers].tcp.port = strtoul(port, NULL, 10);
-            } else {
+            }
+            if (opt_server_info.servers[num_servers].tcp.port == 0) {
                 opt_server_info.servers[num_servers].tcp.port = DEFAULT_MEMCACHED_PORT;
             }
+
             std::cout << "Server [" << num_servers << "] tcp  " << opt_server_info.servers[num_servers].tcp.hostname << " port " << opt_server_info.servers[num_servers].tcp.port << std::endl;
         } else {
             std::cerr << "Invalid server specification: " << server << std::endl;
@@ -211,31 +221,49 @@ void* thread_main(void* arg)
 
     bool had_failure = false;
     for (size_t i = 0; i < opt_server_info.num_servers; i++) {
-        memcached_st *m = memc[i];
+        memcached_st* m = memc[i];
 
+        string = (char*)"my data";
         const char* key = "abc";
+        rc = memcached_set(m, key, strlen(key),
+            string, strlen(string),
+            0 /* fexpires */, 0xcafebabe /* flags */);
+        switch (rc) {
+        case MEMCACHED_SUCCESS:
+            if (opt_verbose) {
+                std::cout << "Connected to server " << i << ", key `" << key << "` stored" << std::endl;
+            }
+            break;
+        case MEMCACHED_HOST_LOOKUP_FAILURE:
+            std::cerr << "Failed to connect to server " << i << " (hostname lookup)" << std::endl;
+            break;
+        case MEMCACHED_CONNECTION_FAILURE:
+            std::cerr << "Failed to connect to server " << i << " (connection failure)" << std::endl;
+            break;
+        default:
+            std::cerr << "Failed to connect to server " << i << std::endl;
+            std::cerr << "error (" << memcached_strerror(m, rc) << ")" << std::endl;
+            break;
+        }
+
+        had_failure |= (rc != MEMCACHED_SUCCESS);
+
         uint32_t flags;
         string = memcached_get(m, key, strlen(key), &string_length, &flags, &rc);
         switch (rc) {
-            case MEMCACHED_SUCCESS:
-                if (opt_verbose) {
-                    std::cout << "Connected to server " << i << ", key `" << key << "` found" << std::endl;
-                }
-                free(string);
-                break;
-            case MEMCACHED_NOTFOUND:
-                std::cerr << "Connected to server" << i << ", but key `" << key << "` not found" << std::endl;
-                break;
-            case MEMCACHED_HOST_LOOKUP_FAILURE:
-                std::cerr << "Failed to connect to server " << i << " (hostname lookup)" << std::endl;
-                break;
-            case MEMCACHED_CONNECTION_FAILURE:
-                std::cerr << "Failed to connect to server " << i << " (connection failure)" << std::endl;
-                break;
-            default:
-                std::cerr << "Failed to connect to server " << i << std::endl;
-                std::cerr << "error (" << memcached_strerror(m, rc) << ")" << std::endl;
-                break;
+        case MEMCACHED_SUCCESS:
+            if (opt_verbose) {
+                std::cout << "Connected to server " << i << ", key `" << key << "` found: " << string << " (" << flags << ")" << std::endl;
+            }
+            free(string);
+            break;
+        case MEMCACHED_NOTFOUND:
+            std::cerr << "Connected to server" << i << ", but key `" << key << "` not found" << std::endl;
+            break;
+        default:
+            std::cerr << "Failed to connect to server " << i << std::endl;
+            std::cerr << "error (" << memcached_strerror(m, rc) << ")" << std::endl;
+            break;
         }
 
         had_failure |= (rc != MEMCACHED_SUCCESS);
@@ -246,24 +274,60 @@ void* thread_main(void* arg)
         exit(EXIT_FAILURE);
     }
 
-    exit(0);
+    size_t num_keys = (opt_max_mem << 20) / (KEY_SIZE + VALUE_SIZE + 64); // how much memory it stores
+    size_t num_keys_added = 0;
+    std::cout << "Thread " << tid << " populating database with  " << num_keys / opt_num_threads << " keys..." << std::endl;
+    for (size_t i = tid; i < num_keys; i += opt_num_threads) {
+        char key[KEY_SIZE + 1];
+        snprintf(key, KEY_SIZE + 1, "%08x", (unsigned int)i);
+
+        char value[VALUE_SIZE + 1];
+        snprintf(value, VALUE_SIZE, "value-%016lx", i);
+
+        memcached_st* m = memc[i % opt_server_info.num_servers];
+        rc = memcached_set(m, key, KEY_SIZE, value, VALUE_SIZE,
+            0 /* expires */, 0 /* flags */);
+        if (memcached_failed(rc)) {
+            std::cerr << "Failed to set key to server " << i << std::endl;
+            std::cerr << "error (" << memcached_strerror(m, rc) << ")" << std::endl;
+        } else {
+            num_keys_added++;
+        }
+    }
+
+    std::cout << "Thread " << tid << " added " << num_keys_added << " / " << num_keys / opt_num_threads << " keys to the server " << std::endl;
 
     // wait until all have connected to the memcached instances
+    std::cout << "Thread " << tid << " waiting for others... " << std::endl;
     pthread_barrier_wait(&barrier);
 
-    size_t num_sucecss = 0;
+    if (opt_verbose) {
+        std::cout << "Thread " << tid << " running " << opt_num_queries << "queries... " << std::endl;
+    }
+    size_t num_success = 0;
     size_t num_not_found = 0;
     size_t num_errors = 0;
+    size_t g_seed = (214013UL * tid + 2531011UL);
     for (size_t i = 0; i < opt_num_queries; i++) {
-        const char* key = "abc";
+
+        size_t objid = (i + (g_seed >> 16)) % (num_keys);
+        g_seed = (214013UL * g_seed + 2531011UL);
+
+        // format the key
+        char key[KEY_SIZE + 1];
+        snprintf(key, KEY_SIZE + 1, "%08x", (unsigned int)objid);
+
+        // pick the server, doing some dummy load balance here based on the number of threads
+        memcached_st* m = memc[objid % opt_server_info.num_servers];
+
         uint32_t flags;
-        string = memcached_get(m, key, strlen(key), &string_length, &flags, &rc);
+        string = memcached_get(m, key, KEY_SIZE, &string_length, &flags, &rc);
         if (rc == MEMCACHED_SUCCESS) {
             if (opt_verbose) {
                 std::cout << "key: " << key << " = " << string << std::endl;
             }
             free(string);
-            num_sucecss++;
+            num_success++;
         } else if (rc == MEMCACHED_NOTFOUND) {
             if (opt_verbose) {
                 std::cout << "key: " << key << " not found" << std::endl;
@@ -279,6 +343,13 @@ void* thread_main(void* arg)
         std::cout << "Thread " << tid << " finished." << std::endl;
     }
 
+    pthread_barrier_wait(&barrier);
+
+    std::cout << "Thread " << tid << " executed " << num_success + num_not_found + num_errors << " queries" << std::endl;
+    if (num_not_found > 0) {
+        std::cerr << "Thread " << tid << " had " << num_not_found << " keys not found" << std::endl;
+    }
+
     if (num_errors > 0) {
         std::cerr << "Thread " << tid << " had " << num_errors << " errors" << std::endl;
     }
@@ -289,7 +360,7 @@ void* thread_main(void* arg)
 
     free(memc);
 
-    return NULL;
+    return (void *)(num_success + num_not_found);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -323,12 +394,39 @@ int main(int argc, char* argv[])
     }
 
     pthread_barrier_wait(&barrier);
+    struct timespec t_start;
+    clock_gettime(CLOCK_MONOTONIC, &t_start);
+
+    pthread_barrier_wait(&barrier);
+    struct timespec t_end;
+    clock_gettime(CLOCK_MONOTONIC, &t_end);
+
+    struct timespec t_elapsed;
+    t_elapsed.tv_sec = t_end.tv_sec - t_start.tv_sec;
+    if (t_start.tv_nsec > t_end.tv_nsec) {
+        t_elapsed.tv_sec--;
+        t_elapsed.tv_nsec = 1000000000UL + t_end.tv_nsec - t_start.tv_nsec;
+    } else {
+        t_elapsed.tv_nsec = t_end.tv_nsec - t_start.tv_nsec;
+    }
 
     // wait for all threads to finish
+    size_t num_queries = 0;
     for (size_t tid = 0; tid < opt_num_threads; tid++) {
-        void* retval;
+        void* retval = NULL;
         pthread_join(threads[tid], &retval);
+        num_queries += (size_t)retval;
     }
+
+    size_t num_queries_expected = opt_num_queries * opt_num_threads;
+
+    std::cout << "Elapsed time: " << t_elapsed.tv_sec << "." << std::setw(9) << std::setfill('0') << t_elapsed.tv_nsec << " seconds" << std::endl;
+
+    uint64_t elapsed_ms = (t_elapsed.tv_sec * 1000000000UL + t_elapsed.tv_nsec) / 1000000;
+
+    std::cout << "benchmark took " << elapsed_ms << " ms" << std::endl;
+    std::cout << "benchmark took " << (num_queries / elapsed_ms) * 1000 << " queries / second" << std::endl;
+    std::cout << "benchmark executed " << num_queries << " / " << num_queries_expected << " queries" << std::endl;
 
     // destroy the barrier
     pthread_barrier_destroy(&barrier);
