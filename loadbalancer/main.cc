@@ -408,6 +408,13 @@ int main(int argc, char* argv[])
         opt_num_threads = 1;
     }
 
+    std::cout << "x_benchmark_mem = "<< opt_max_mem << " MB" << std::endl;
+    // number of threads: 3
+    std::cout << "number of threads: " << opt_num_threads << std::endl;
+    // number of keys: 131072
+    std::cout << "number of keys: " << (opt_max_mem << 20) / ITEM_SIZE << std::endl;
+
+
     // initialize the barrier
     pthread_barrier_init(&barrier, NULL, opt_num_threads + 1);
 

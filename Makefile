@@ -49,12 +49,12 @@ libmemcached/.stamp:
 	rm -rf $(LIBMEMCACHED_FILE)
 	mv libmemcached-$(LIBMEMCACHED_VERSION) libmemcached
 	(cd libmemcached && $(LIBMEMCACHED_CONF_ENV) ./configure --prefix=$(BUILD_DIR_ABS))
-	$(MAKE) -C libmemcached
+	$(MAKE) -C libmemcached $(MAKEFLAGS)
 	$(MAKE) -C libmemcached install
 	touch $@
 
 $(BUILD_DIR)/bin/memcached: memcached/.stamp
-	$(MAKE) -C memcached
+	$(MAKE) -C memcached $(MAKEFLAGS)
 	$(MAKE) -C memcached install
 
 $(BUILD_DIR)/bin/loadbalancer: libmemcached/.stamp

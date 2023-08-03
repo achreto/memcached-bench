@@ -3,7 +3,7 @@
 # COMMON SETTINGS
 
 function usage() {
-    echo "usage: $0 <ID> <tcp|unix> <memory-limit>"
+    echo "usage: $0 <ID> <tcp|unix> <memory-limit> <threads>"
 }
 
 ID=$1
@@ -26,6 +26,22 @@ case $ID in
 esac
 
 ####################################################################################################
+# Checking the protocol
+####################################################################################################
+
+# getting the PROTOCOL
+case $PROTOCOL in
+  tcp|unix)
+    echo "with protocol $PROTOCOL"
+    ;;
+  *)
+    echo "unknown protocol $PROTOCOL"
+    usage
+    exit 1
+    ;;
+esac
+
+####################################################################################################
 # Obtain the memory limit
 ####################################################################################################
 
@@ -41,6 +57,21 @@ else
     MEMORY_LIMIT=$3
 fi
 
+####################################################################################################
+# Number of threads
+####################################################################################################
+
+if [ "$4" == "" ]; then
+    THREADS=4
+else
+    re='^[0-9]+$'
+    if ! [[ $4 =~ $re ]] ; then
+        echo "Supplied number of threads is not a number."
+        usage
+        exit 1
+    fi
+    THREADS=$4
+fi
 
 ####################################################################################################
 # Default Memcached Options
@@ -70,7 +101,7 @@ MEMCACHED_OPTIONS+=" --pidfile=$(pwd)/memcached${ID}.pid"
 # MEMCACHED_OPTIONS+=" --lock-memory"
 
 # -t, --threads=<num>       number of threads to use (default: 4)
-MEMCACHED_OPTIONS+=" --threads=8 "
+MEMCACHED_OPTIONS+=" --threads=${THREADS} "
 
 ####################################################################################################
 # Configuring the communication protocol
