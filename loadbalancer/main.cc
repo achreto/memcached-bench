@@ -311,6 +311,7 @@ void* thread_main(void* arg)
     printf("thread.%lu populating database with %zu keys\n", tid, num_keys / opt_num_threads );
 
     for (size_t i = tid; i < num_keys; i += opt_num_threads) {
+        printf("thread.%lu added %zu keys to %zu servers\n", tid, num_keys_added, opt_server_info.num_servers);
         char key[KEY_SIZE + 1];
         snprintf(key, KEY_SIZE + 1, "%08x", (unsigned int)i);
 
@@ -407,6 +408,11 @@ int main(int argc, char* argv[])
 
     if (opt_num_threads == 0) {
         opt_num_threads = 1;
+    }
+
+    if (opt_server_info.num_servers == 0) {
+        printf("no servers given!\n");
+        exit(1);
     }
 
     std::cout << "x_benchmark_mem = "<< opt_max_mem << " MB" << std::endl;
