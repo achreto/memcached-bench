@@ -23,6 +23,39 @@
 // we set 64 byte values
 #define VALUE_SIZE 64
 
+typedef unsigned int rel_time_t;
+
+/**
+ * Structure for storing items within memcached.
+ */
+typedef struct _stritem {
+    /* Protected by LRU locks */
+    struct _stritem *next;
+    struct _stritem *prev;
+    /* Rest are protected by an item lock */
+    struct _stritem *h_next;    /* hash chain next */
+    rel_time_t      time;       /* least recent access */
+    rel_time_t      exptime;    /* expire time */
+    int             nbytes;     /* size of data */
+    unsigned short  refcount;
+    uint16_t        it_flags;   /* ITEM_* above */
+    uint8_t         slabs_clsid;/* which slab class we're in */
+    uint8_t         nkey;       /* key length, w/terminating null and padding */
+    /* this odd type prevents type-punning issues when we do
+     * the little shuffle to save space when not using CAS. */
+    union {
+        uint64_t cas;
+        char end;
+    } data[];
+    /* if it_flags & ITEM_CAS we have 8 bytes CAS */
+    /* then null-terminated key */
+    /* then " flags length\r\n" (no terminating null) */
+    /* then data with terminating \r\n (no terminating null; it's binary!) */
+} item;
+
+#define ITEM_SIZE (sizeof(item) + sizeof(size_t) + KEY_SIZE + VALUE_SIZE)
+
+
 struct server_info {
     size_t num_servers;
     struct {
@@ -274,7 +307,7 @@ void* thread_main(void* arg)
         exit(EXIT_FAILURE);
     }
 
-    size_t num_keys = (opt_max_mem << 20) / (KEY_SIZE + VALUE_SIZE + 64); // how much memory it stores
+    size_t num_keys = (opt_max_mem << 20) / ITEM_SIZE; // how much memory it stores
     size_t num_keys_added = 0;
     std::cout << "Thread " << tid << " populating database with  " << num_keys / opt_num_threads << " keys..." << std::endl;
     for (size_t i = tid; i < num_keys; i += opt_num_threads) {
@@ -295,7 +328,7 @@ void* thread_main(void* arg)
         }
     }
 
-    std::cout << "Thread " << tid << " added " << num_keys_added << " / " << num_keys / opt_num_threads << " keys to the server " << std::endl;
+    std::cout << "Thread " << tid << " added " << num_keys_added << " / " << num_keys << " keys to the server " << std::endl;
 
     // wait until all have connected to the memcached instances
     std::cout << "Thread " << tid << " waiting for others... " << std::endl;

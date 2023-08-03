@@ -49,14 +49,16 @@ fi
 # the default port of memcached
 DEFAULT_PORT=11211
 
+MEMCACHED_OPTIONS="--x-benchmark-no-run"
+
 # -M, --disable-evictions   return error on memory exhausted instead of evicting
-MEMCACHED_OPTIONS=" --disable-evictions"
+MEMCACHED_OPTIONS+=" --disable-evictions"
 
 # -c, --conn-limit=<num>    max simultaneous connections (default: 1024)
 MEMCACHED_OPTIONS+=" --conn-limit=128"
 
 # -m, --memory-limit=<num>  item memory in megabytes (default: 64)
-MEMCACHED_OPTIONS+=" --memory-limit=${MEMORY_LIMIT}"
+MEMCACHED_OPTIONS+=" --memory-limit=${MEMORY_LIMIT} --x-benchmark-mem=${MEMORY_LIMIT}"
 
 # -d, --daemon              run as a daemon
 MEMCACHED_OPTIONS+=" --daemon"
@@ -82,7 +84,7 @@ case $PROTOCOL in
     ;;
   unix)
     # -s, --unix-socket=<file>  UNIX socket to listen on (disables network support)
-    MEMCACHED_OPTIONS+=" --unix-socket=memcached${ID}.sock"
+    MEMCACHED_OPTIONS+=" --unix-socket=$(pwd)/memcached${ID}.sock"
     ;;
   *)
     echo "unknown protocol"
