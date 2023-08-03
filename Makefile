@@ -11,7 +11,7 @@ MEMCACHED_GIT=https://github.com/achreto/memcached.git
 
 # the commit to checkout
 # MEMCACHED_COMMIT=9621b14
-MEMCACHED_COMMIT=f33b2e42b59bb5868c12ef60590c7a177ad90487
+MEMCACHED_COMMIT=9ae85bec0e430403f42b0d11b3a18054bcc62dd7
 
 # keep in sync with the librettos options
 MEMCACHED_CONF_OPTS += \
