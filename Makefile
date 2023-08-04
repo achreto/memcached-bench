@@ -30,6 +30,10 @@ LIBMEMCACHED_FILE=libmemcached-$(LIBMEMCACHED_VERSION).tar.gz
 LIBMEMCACHED_CONF_ENV += \
 	CXXFLAGS=-fpermissive
 
+LIBMEMCACHED_CONF_OPTS += \
+	--disable-sasl \
+	--prefix=$(BUILD_DIR_ABS)
+
 ####################################################################################################
 # Building Targets
 ####################################################################################################
@@ -48,7 +52,7 @@ libmemcached/.stamp:
 	tar -xvzf $(LIBMEMCACHED_FILE)
 	rm -rf $(LIBMEMCACHED_FILE)
 	mv libmemcached-$(LIBMEMCACHED_VERSION) libmemcached
-	(cd libmemcached && $(LIBMEMCACHED_CONF_ENV) ./configure --prefix=$(BUILD_DIR_ABS))
+	(cd libmemcached && $(LIBMEMCACHED_CONF_ENV) ./configure $(LIBMEMCACHED_CONF_OPTS))
 	$(MAKE) -C libmemcached $(MAKEFLAGS)
 	$(MAKE) -C libmemcached install
 	touch $@
