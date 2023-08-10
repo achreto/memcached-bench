@@ -53,7 +53,7 @@ typedef struct _stritem {
     /* then data with terminating \r\n (no terminating null; it's binary!) */
 } item;
 
-#define ITEM_SIZE (sizeof(item) + sizeof(size_t) + KEY_SIZE + VALUE_SIZE)
+#define ITEM_SIZE (sizeof(item) + VALUE_SIZE + KEY_SIZE + 34)
 
 
 struct server_info {
