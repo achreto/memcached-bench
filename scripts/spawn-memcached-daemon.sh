@@ -111,6 +111,12 @@ MEMCACHED_OPTIONS+=" --conn-limit=128"
 # -m, --memory-limit=<num>  item memory in megabytes (default: 64)
 MEMCACHED_OPTIONS+=" --memory-limit=${MEMORY_LIMIT} --x-benchmark-mem=${MEMORY_LIMIT}"
 
+# -d, --daemon              run as a daemon
+MEMCACHED_OPTIONS+=" --daemon"
+
+# -P, --pidfile=<file>      save PID in <file>, only used with -d option
+MEMCACHED_OPTIONS+=" --pidfile=$(pwd)/memcached${ID}.pid"
+
 # -k, --lock-memory         lock down all paged memory
 # MEMCACHED_OPTIONS+=" --lock-memory"
 
