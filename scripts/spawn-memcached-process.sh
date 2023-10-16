@@ -106,7 +106,7 @@ MEMCACHED_OPTIONS="--x-benchmark-no-run"
 MEMCACHED_OPTIONS+=" --disable-evictions"
 
 # -c, --conn-limit=<num>    max simultaneous connections (default: 1024)
-MEMCACHED_OPTIONS+=" --conn-limit=128"
+MEMCACHED_OPTIONS+=" --conn-limit=1024"
 
 # -m, --memory-limit=<num>  item memory in megabytes (default: 64)
 MEMCACHED_OPTIONS+=" --memory-limit=${MEMORY_LIMIT} --x-benchmark-mem=${MEMORY_LIMIT}"
