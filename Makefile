@@ -43,6 +43,7 @@ build: $(BUILD_DIR)/bin/memcached $(BUILD_DIR)/bin/loadbalancer
 memcached/.stamp:
 	git clone $(MEMCACHED_GIT)
 	(cd memcached && git checkout $(MEMCACHED_COMMIT))
+	(cd memcached && ./autogen.sh || true)
 	(cd memcached && ./configure $(MEMCACHED_CONF_OPTS))
 	touch $@
 
