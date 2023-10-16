@@ -11,7 +11,7 @@ MEMCACHED_GIT=https://github.com/achreto/memcached.git
 
 # the commit to checkout
 # MEMCACHED_COMMIT=9621b14
-MEMCACHED_COMMIT=9ae85bec0e430403f42b0d11b3a18054bcc62dd7
+MEMCACHED_COMMIT=467aa5a2533057913c29f06f0a41759614120c27
 
 # keep in sync with the librettos options
 MEMCACHED_CONF_OPTS += \
@@ -43,7 +43,6 @@ build: $(BUILD_DIR)/bin/memcached $(BUILD_DIR)/bin/loadbalancer
 memcached/.stamp:
 	git clone $(MEMCACHED_GIT)
 	(cd memcached && git checkout $(MEMCACHED_COMMIT))
-	(cd memcached && ./autogen.sh)
 	(cd memcached && ./configure $(MEMCACHED_CONF_OPTS))
 	touch $@
 
