@@ -10,8 +10,7 @@ BUILD_DIR_ABS=$(shell pwd)/$(BUILD_DIR)
 MEMCACHED_GIT=https://github.com/achreto/memcached.git
 
 # the commit to checkout
-# MEMCACHED_COMMIT=9621b14
-MEMCACHED_COMMIT=467aa5a2533057913c29f06f0a41759614120c27
+MEMCACHED_COMMIT=c835c3326e84b2930a96f91f3416d1b24c36f86a
 
 # keep in sync with the librettos options
 MEMCACHED_CONF_OPTS += \
