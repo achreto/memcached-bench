@@ -7,7 +7,6 @@ CXXFLAGS += \
 	-O2 \
 
 LIBS += \
-	-static \
 	-L$(LIB_MEMCACHED) \
 	-lmemcached \
 	-lmemcachedutil \
