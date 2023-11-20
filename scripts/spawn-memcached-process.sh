@@ -109,7 +109,8 @@ MEMCACHED_OPTIONS+=" --disable-evictions"
 MEMCACHED_OPTIONS+=" --conn-limit=1024"
 
 # -m, --memory-limit=<num>  item memory in megabytes (default: 64)
-MEMCACHED_OPTIONS+=" --memory-limit=${MEMORY_LIMIT} --x-benchmark-mem=${MEMORY_LIMIT}"
+BENCHMARK_MEM=$((2 * $MEMORY_LIMIT))
+MEMCACHED_OPTIONS+=" --memory-limit=${MEMORY_LIMIT} --x-benchmark-mem=${BENCHMARK_MEM}"
 
 # -k, --lock-memory         lock down all paged memory
 # MEMCACHED_OPTIONS+=" --lock-memory"
