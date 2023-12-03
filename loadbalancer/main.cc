@@ -11,6 +11,28 @@
 #include <unistd.h>
 #include <time.h>
 
+
+
+struct xor_shift {
+    uint64_t state;
+};
+
+static inline void xor_shift_init(struct xor_shift *st, uint64_t tid)
+{
+    st->state = 0xdeadbeefdeadbeef ^ tid;
+}
+
+static inline uint64_t xor_shift_next(struct xor_shift *st, uint64_t num_elements) {
+    // https://en.wikipedia.org/wiki/Xorshift
+    uint64_t x = st->state;
+    x ^= x << 13;
+    x ^= x >> 7;
+    x ^= x << 17;
+    st->state = x;
+    return x % num_elements;
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Option Parsing
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -214,6 +236,9 @@ void* thread_main(void* arg)
         printf("Thread %lu started\n", tid);
     }
 
+    struct xor_shift rand;
+    xor_shift_init(&rand, tid);
+
     // create the memcached client connection
     memcached_st** memc = (memcached_st**)calloc(opt_server_info.num_servers, sizeof(*memc));
     if (memc == NULL) {
@@ -344,11 +369,14 @@ void* thread_main(void* arg)
     size_t num_success = 0;
     size_t num_not_found = 0;
     size_t num_errors = 0;
-    size_t g_seed = (214013UL * tid + 2531011UL);
+
     for (size_t i = 0; i < opt_num_queries; i++) {
 
-        size_t objid = (i + (g_seed >> 16)) % (num_keys);
-        g_seed = (214013UL * g_seed + 2531011UL);
+        if ((i % 100000) == 0) {
+            printf("thread.%lu executed %zu / %zu queries...\n", tid, i, opt_num_queries);
+        }
+
+        uint64_t objid = xor_shift_next(&rand, num_keys);
 
         // format the key
         char key[KEY_SIZE + 1];
