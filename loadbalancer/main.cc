@@ -575,13 +575,13 @@ int main(int argc, char* argv[])
     }
     uint64_t elapsed_ms = (t_elapsed.tv_sec * 1000000000UL + t_elapsed.tv_nsec) / 1000000;
 
-    fprintf(stderr, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    fprintf(stderr, "Populated %zu / %zu key-value pairs in %lu ms:\n", num_populated, num_items, elapsed_ms);
-    fprintf(stderr, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Populated %zu / %zu key-value pairs in %lu ms:\n", num_populated, num_items, elapsed_ms);
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
-    fprintf(stderr, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    fprintf(stderr, "Executing %zu queries with %zu threads for %zu seconds.\n", opt_num_threads * opt_num_queries, opt_num_threads, opt_duration);
-    fprintf(stderr, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Executing %zu queries with %zu threads for %zu seconds.\n", opt_num_threads * opt_num_queries, opt_num_threads, opt_duration);
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
     pthread_barrier_wait(&barrier);
     clock_gettime(CLOCK_MONOTONIC, &t_start);
@@ -610,15 +610,16 @@ int main(int argc, char* argv[])
 
     size_t num_queries_expected = opt_num_queries * opt_num_threads;
 
-    fprintf(stderr, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
-    fprintf(stderr, "Benchmark Done.\n");
-    fprintf(stderr, "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    printf("Benchmark Done.\n");
+    printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
 
     elapsed_ms = (t_elapsed.tv_sec * 1000000000UL + t_elapsed.tv_nsec) / 1000000;
     printf("===============================================================================\n");
     printf("benchmark took %lu ms (of %lu ms)\n", elapsed_ms, opt_duration * 1000);
-    printf("benchmark took %lu queries / second\n", (num_queries * 1000 / elapsed_ms) );
-    printf("benchmark executed %zu / %zu queries   (%zu missed) \n",  num_queries, num_queries_expected, num_missed);
+    printf("benchmark executed %zu / %zu queries   (%zu missed) \n", num_queries, num_queries_expected, num_missed);
+    // converting num_queries per microsecond to num qeuries per second.
+    printf("benchmark throughput %lu queries / second\n", (num_queries * 1000 / elapsed_ms));
     if (num_missed > 0) {
         printf("benchmark missed %zu queries!\n", num_missed);
     }
