@@ -31,9 +31,6 @@ esac
 
 # getting the PROTOCOL
 case $PROTOCOL in
-  tcp)
-    echo "with protocol $PROTOCOL"
-    ;;
   tcp://localhost*)
     echo "with protocol $PROTOCOL"
     URL=${PROTOCOL#$"tcp://"}; # remove the protocol prefix
@@ -45,6 +42,9 @@ case $PROTOCOL in
         exit 1
     fi
     ;;
+  tcp)
+    echo "with protocol $PROTOCOL"
+    ;;
   unix://*)
     echo "with protocol $PROTOCOL"
     SOCK_PATH=${PROTOCOL#$"unix://"}; # remove the protocol prefix
@@ -54,8 +54,12 @@ case $PROTOCOL in
         exit 1
      fi
     ;;
+  unix)
+    echo "with protocol $PROTOCOL"
+    SOCK_PATH="memcached${ID}.sock"
+    ;;
   *)
-    echo "unknown protocol $PROTOCOL"
+    echo "unknown protocol `$PROTOCOL`"
     usage
     exit 1
     ;;
@@ -137,6 +141,9 @@ case $PROTOCOL in
   unix://*)
     SOCK_PATH=${PROTOCOL#"unix://"}; # remove the protocol prefix
     # -s, --unix-socket=<file>  UNIX socket to listen on (disables network support)
+    MEMCACHED_OPTIONS+=" --unix-socket=${SOCK_PATH}"
+    ;;
+  unix)
     MEMCACHED_OPTIONS+=" --unix-socket=${SOCK_PATH}"
     ;;
   *)
