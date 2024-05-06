@@ -258,30 +258,30 @@ void* thread_main(void* arg)
     // create the memcached client connection
     memcached_st** memc = (memcached_st**)calloc(opt_server_info.num_servers, sizeof(*memc));
     if (memc == NULL) {
-        printf("thread.%lu Failed to allocate memory for server array\n", tid);
+        printf("thread:%lu Failed to allocate memory for server array\n", tid);
         exit(EXIT_FAILURE);
     }
 
     for (size_t i = 0; i < opt_server_info.num_servers; i++) {
         if (opt_verbose) {
-            printf("thread.%lu initializing connection to server %zu\n", tid, i);
+            printf("thread:%lu initializing connection to server %zu\n", tid, i);
         }
 
         memc[i] = memcached_create(NULL);
         if (memc[i] == NULL) {
-            printf("thread.%lu failed to create memcached client %zu\n", tid, i);
+            printf("thread:%lu failed to create memcached client %zu\n", tid, i);
             exit(EXIT_FAILURE);
         }
         memcached_behavior_set(memc[i], MEMCACHED_BEHAVIOR_BINARY_PROTOCOL, (uint64_t)opt_binary);
 
         if (opt_server_info.servers[i].is_unix) {
             if (opt_verbose) {
-                printf("thread.%lu connecting to unix://%s\n", tid, opt_server_info.servers[i].ux.path);
+                printf("thread:%lu connecting to unix://%s\n", tid, opt_server_info.servers[i].ux.path);
             }
             rc = memcached_server_add_unix_socket(memc[i], opt_server_info.servers[i].ux.path);
         } else {
             if (opt_verbose) {
-                printf("thread.%lu connecting to tcp://%s:%d\n", tid, opt_server_info.servers[i].tcp.hostname, opt_server_info.servers[i].tcp.port);
+                printf("thread:%lu connecting to tcp://%s:%d\n", tid, opt_server_info.servers[i].tcp.hostname, opt_server_info.servers[i].tcp.port);
             }
             rc = memcached_server_add(memc[i], opt_server_info.servers[i].tcp.hostname,
                 opt_server_info.servers[i].tcp.port);
@@ -289,7 +289,7 @@ void* thread_main(void* arg)
 
         if (rc != MEMCACHED_SUCCESS) {
             std::cerr << "Failed to add server " << i << " to memcached client" << std::endl;
-            printf("thread.%lu failed to add server\n", tid);
+            printf("thread:%lu failed to add server\n", tid);
             exit(EXIT_FAILURE);
         }
     }
@@ -306,17 +306,17 @@ void* thread_main(void* arg)
         switch (rc) {
         case MEMCACHED_SUCCESS:
             if (opt_verbose) {
-                printf("thread.%lu connected to server %zu\n", tid, i);
+                printf("thread:%lu connected to server %zu\n", tid, i);
             }
             break;
         case MEMCACHED_HOST_LOOKUP_FAILURE:
-            printf("thread.%lu failed to connect to server %zu (hostname lookup)u\n", tid, i);
+            printf("thread:%lu failed to connect to server %zu (hostname lookup)u\n", tid, i);
             break;
         case MEMCACHED_CONNECTION_FAILURE:
-            printf("thread.%lu failed to connect to server %zu (connection failure)\n", tid, i);
+            printf("thread:%lu failed to connect to server %zu (connection failure)\n", tid, i);
             break;
         default:
-            printf("thread.%lu failed to connect to server %zu (%s)\n", tid, i, memcached_strerror(m, rc) );
+            printf("thread:%lu failed to connect to server %zu (%s)\n", tid, i, memcached_strerror(m, rc) );
             break;
         }
 
@@ -327,15 +327,15 @@ void* thread_main(void* arg)
         switch (rc) {
         case MEMCACHED_SUCCESS:
             if (opt_verbose) {
-                printf("thread.%lu connected %zu  key %s found: %s (%x) not found\n", tid, i, key, string, flags);
+                printf("thread:%lu connected %zu  key %s found: %s (%x) not found\n", tid, i, key, string, flags);
             }
             free(string);
             break;
         case MEMCACHED_NOTFOUND:
-            printf("thread.%lu server %zu  key %s not found\n", tid, i, key);
+            printf("thread:%lu server %zu  key %s not found\n", tid, i, key);
             break;
         default:
-            printf("thread.%lu failed to get key from server %zu (%s)\n", tid, i, memcached_strerror(m, rc) );
+            printf("thread:%lu failed to get key from server %zu (%s)\n", tid, i, memcached_strerror(m, rc) );
             break;
         }
 
@@ -343,7 +343,7 @@ void* thread_main(void* arg)
     }
 
     if (had_failure) {
-        printf("thread.%lu connection failure. Exiting.\n", tid);
+        printf("thread:%lu connection failure. Exiting.\n", tid);
         exit(EXIT_FAILURE);
     }
 
@@ -360,7 +360,7 @@ void* thread_main(void* arg)
 
     for (size_t i = tid; i < num_keys; i += opt_num_threads) {
         if (i % (num_keys/ 10) == 0) {
-            printf("thread.%lu added %zu keys to %zu servers\n", tid, num_keys_added, opt_server_info.num_servers);
+            printf("thread:%lu added %zu keys to %zu servers\n", tid, num_keys_added, opt_server_info.num_servers);
         }
 
         char key[KEY_SIZE + 1];
@@ -381,7 +381,7 @@ void* thread_main(void* arg)
 
     __atomic_fetch_add(&num_populated, num_keys_added, __ATOMIC_RELAXED);
 
-    printf("populate: thread.%zu done. added %zu elements, %zu not added of which %zu already existed (%zu servers)\n",
+    printf("populate: thread:%zu done. added %zu elements, %zu not added of which %zu already existed (%zu servers)\n",
              tid, num_keys_added, num_not_added, num_existed, opt_server_info.num_servers);
 
     printf("thread:%03zu ready\n", tid);
@@ -393,7 +393,7 @@ void* thread_main(void* arg)
     // Benchmark Phase
     // ---------------------------------------------------------------------------------------------
 
-    printf("execute: thread.%zu startes executing\n", tid);
+    printf("execute: thread:%zu startes executing\n", tid);
 
     size_t num_success = 0;
     size_t num_not_found = 0;
@@ -454,18 +454,18 @@ void* thread_main(void* arg)
         string = memcached_get(m, key, KEY_SIZE, &string_length, &flags, &rc);
         if (rc == MEMCACHED_SUCCESS) {
             if (opt_verbose) {
-                printf("thread.%lu key %s = %s...\n", tid, key, string);
+                printf("thread:%lu key %s = %s...\n", tid, key, string);
             }
             free(string);
             num_success++;
         } else if (rc == MEMCACHED_NOTFOUND) {
             if (opt_verbose) {
-                printf("thread.%lu key %s = NOT_FOUND...\n", tid, key);
+                printf("thread:%lu key %s = NOT_FOUND...\n", tid, key);
             }
             num_not_found++;
         } else {
             if (opt_verbose) {
-                printf("thread.%lu key %s = ERROR (%s)...\n", tid, key, memcached_strerror(m, rc) );
+                printf("thread:%lu key %s = ERROR (%s)...\n", tid, key, memcached_strerror(m, rc) );
             }
             num_erroneous++;
         }
@@ -477,11 +477,11 @@ void* thread_main(void* arg)
     pthread_barrier_wait(&barrier);
 
     if (num_not_found > 0) {
-        printf("thread.%lu had %zu keys not found\n", tid, num_not_found);
+        printf("thread:%lu had %zu keys not found\n", tid, num_not_found);
     }
 
     if (num_erroneous > 0) {
-        printf("thread.%lu had %zu errors\n", tid, num_errors);
+        printf("thread:%lu had %zu errors\n", tid, num_errors);
     }
 
     __atomic_fetch_add(&num_queries, query_counter, __ATOMIC_RELAXED);
