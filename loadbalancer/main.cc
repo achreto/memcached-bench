@@ -358,8 +358,13 @@ void* thread_main(void* arg)
 
     printf("thread:%03zu populating\n", tid);
 
+    size_t log_intervals = 10;
+    if (opt_num_threads < 4) {
+        log_intervals = 20;
+    }
+
     for (size_t i = tid; i < num_keys; i += opt_num_threads) {
-        if (i % (num_keys / 10) == i) {
+        if (i % (num_keys / log_intervals) == i) {
             printf("thread:%lu added %zu keys to %zu servers (keys not added: %zu)\n", tid, num_keys_added, opt_server_info.num_servers, num_not_added);
         }
 
