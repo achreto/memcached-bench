@@ -359,8 +359,8 @@ void* thread_main(void* arg)
     printf("thread:%03zu populating\n", tid);
 
     for (size_t i = tid; i < num_keys; i += opt_num_threads) {
-        if (i % (num_keys/ 10) == 0) {
-            printf("thread:%lu added %zu keys to %zu servers\n", tid, num_keys_added, opt_server_info.num_servers);
+        if (i % (num_keys / 10) == i) {
+            printf("thread:%lu added %zu/%zu keys to %zu servers (keys not added: %zu)\n", tid, num_keys_added, num_keys, opt_server_info.num_servers, num_not_added);
         }
 
         char key[KEY_SIZE + 1];
@@ -529,7 +529,7 @@ int main(int argc, char* argv[])
     // initialize the barrier
     pthread_barrier_init(&barrier, NULL, opt_num_threads + 1);
 
-    size_t num_items = opt_max_mem / (ITEM_SIZE);
+    size_t num_items = (opt_max_mem << 20) / (ITEM_SIZE);
 
     printf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     printf("Populating %zu key-value pairs....\n", num_items);
